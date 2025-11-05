@@ -5,6 +5,6 @@
 
 namespace gsea {
 
-    SampleData load_sample_data(const std::string& filepath);
+SampleData load_sample_data(const std::string& filepath);
 
 } // namespace gsea

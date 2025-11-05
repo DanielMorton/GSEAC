@@ -5,6 +5,6 @@
 
 namespace gsea {
 
-    ExpressionData load_expression_data(const std::string& filepath);
+ExpressionData load_expression_data(const std::string& filepath);
 
 } // namespace gsea

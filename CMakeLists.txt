@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 project(gsea CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(Eigen3_DIR /opt/homebrew/Cellar/eigen/5.0.0)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find Eigen
-find_package(Eigen3 5.0 REQUIRED NO_MODULE)
+find_package(Eigen3 5.0.0 REQUIRED NO_MODULE)
 
 # Source files
 set(SOURCES
@@ -36,7 +36,14 @@ target_link_libraries(gsea Eigen3::Eigen)
 
 # Compiler options
 if(MSVC)
-    target_compile_options(gsea PRIVATE /W4)
+    target_compile_options(gsea PRIVATE /W4 /O2 /std:c++20)
 else()
-    target_compile_options(gsea PRIVATE -Wall -Wextra -O2 -march=native)
+    target_compile_options(gsea PRIVATE -Wall -Wextra -Wpedantic -O3 -march=native -std=c++20)
+endif()
+
+# Use parallel STL if available
+find_package(TBB QUIET)
+if(TBB_FOUND)
+    target_link_libraries(gsea TBB::tbb)
+    target_compile_definitions(gsea PRIVATE USE_PARALLEL_STL)
 endif()

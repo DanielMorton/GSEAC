@@ -7,6 +7,8 @@
 #include "gsea/statistics.h"
 #include <iostream>
 #include <stdexcept>
+#include <format>
+#include <ranges>
 
 namespace gsea {
 
@@ -15,24 +17,24 @@ void GSEAAnalyzer::load_data(const std::string& exp_file,
                               const std::string& geneset_file) {
     std::cout << "  Loading expression data...\n";
     expression_ = load_expression_data(exp_file);
-    std::cout << "    Loaded " << expression_->num_genes() 
-              << " genes across " << expression_->num_samples() << " samples\n";
+    std::cout << std::format("    Loaded {} genes across {} samples\n",
+              expression_->num_genes(), expression_->num_samples());
 
     std::cout << "  Loading sample data...\n";
     samples_ = load_sample_data(samp_file);
-    std::cout << "    Loaded " << samples_->num_samples() << " samples ("
-              << samples_->num_diseased() << " diseased, "
-              << samples_->num_healthy() << " healthy)\n";
+    std::cout << std::format("    Loaded {} samples ({} diseased, {} healthy)\n",
+              samples_->num_samples(), samples_->num_diseased(), samples_->num_healthy());
 
-    // Build sample name to column index mapping
+    // Build sample name to column index mapping using ranges
     sample_to_column_.clear();
-    for (size_t i = 0; i < expression_->sample_names().size(); ++i) {
-        sample_to_column_[expression_->sample_names()[i]] = i;
+    for (auto [i, name] : std::views::enumerate(expression_->sample_names())) {
+        sample_to_column_[std::string(name)] = i;
     }
 
     std::cout << "  Loading gene sets...\n";
-    gene_sets_ = load_gene_sets(geneset_file, expression_->gene_names());
-    std::cout << "    Loaded " << gene_sets_.size() << " gene sets\n";
+    auto gene_names_vec = expression_->gene_names() | std::ranges::to<std::vector>();
+    gene_sets_ = load_gene_sets(geneset_file, gene_names_vec);
+    std::cout << std::format("    Loaded {} gene sets\n", gene_sets_.size());
 }
 
 std::vector<std::string> GSEAAnalyzer::get_gene_rank_order() {
@@ -40,21 +42,18 @@ std::vector<std::string> GSEAAnalyzer::get_gene_rank_order() {
         throw std::runtime_error("Data not loaded");
     }
 
-    std::vector<size_t> disease_cols;
-    std::vector<size_t> healthy_cols;
+    auto [disease_cols, healthy_cols] = [this]() {
+        std::vector<size_t> disease, healthy;
 
-    for (size_t i = 0; i < samples_->disease_status().size(); ++i) {
-        const auto& sample_name = samples_->sample_names()[i];
-        auto it = sample_to_column_.find(sample_name);
-        
-        if (it != sample_to_column_.end()) {
-            if (samples_->disease_status()[i] == 1) {
-                disease_cols.push_back(it->second);
-            } else {
-                healthy_cols.push_back(it->second);
+        for (auto [i, status] : std::views::enumerate(samples_->disease_status())) {
+            if (auto it = sample_to_column_.find(std::string(samples_->sample_names()[i]));
+                it != sample_to_column_.end()) {
+                (status == 1 ? disease : healthy).push_back(it->second);
             }
         }
-    }
+
+        return std::pair{std::move(disease), std::move(healthy)};
+    }();
 
     if (disease_cols.empty() || healthy_cols.empty()) {
         throw std::runtime_error(
@@ -63,27 +62,23 @@ std::vector<std::string> GSEAAnalyzer::get_gene_rank_order() {
 
     gene_rank_ = compute_gene_rank(*expression_, disease_cols, healthy_cols);
 
-    std::vector<std::string> gene_names;
-    gene_names.reserve(gene_rank_->size());
-    for (size_t idx : *gene_rank_) {
-        gene_names.push_back(expression_->gene_names()[idx]);
-    }
-
-    return gene_names;
+    return *gene_rank_
+        | std::views::transform([this](size_t idx) {
+            return std::string(expression_->gene_names()[idx]);
+        })
+        | std::ranges::to<std::vector>();
 }
 
 double GSEAAnalyzer::get_enrichment_score(const GeneSet& gene_set,
                                           const std::vector<size_t>* gene_rank) {
-    const std::vector<size_t>* rank = gene_rank;
-    
-    if (!rank) {
+    if (!gene_rank) {
         if (!gene_rank_) {
             get_gene_rank_order();
         }
-        rank = &(*gene_rank_);
+        gene_rank = &(*gene_rank_);
     }
 
-    return calculate_enrichment_score(gene_set, *rank);
+    return calculate_enrichment_score(gene_set, *gene_rank);
 }
 
 std::unordered_map<std::string, double> GSEAAnalyzer::compute_all_enrichment_scores() {
@@ -91,13 +86,14 @@ std::unordered_map<std::string, double> GSEAAnalyzer::compute_all_enrichment_sco
         get_gene_rank_order();
     }
 
-    std::unordered_map<std::string, double> scores;
-    for (const auto& gene_set : gene_sets_) {
-        double score = calculate_enrichment_score(gene_set, *gene_rank_);
-        scores[gene_set.get_name()] = score;
-    }
-
-    return scores;
+    return gene_sets_
+        | std::views::transform([this](const auto& gene_set) {
+            return std::pair{
+                std::string(gene_set.get_name()),
+                calculate_enrichment_score(gene_set, *gene_rank_)
+            };
+        })
+        | std::ranges::to<std::unordered_map>();
 }
 
 std::vector<std::string> GSEAAnalyzer::get_significant_sets(double p_value,
@@ -111,14 +107,13 @@ std::vector<std::string> GSEAAnalyzer::get_significant_sets(double p_value,
     }
 
     // Compute actual enrichment scores
-    std::vector<double> actual_scores;
-    actual_scores.reserve(gene_sets_.size());
-    for (const auto& gene_set : gene_sets_) {
-        actual_scores.push_back(calculate_enrichment_score(gene_set, *gene_rank_));
-    }
+    auto actual_scores = gene_sets_
+        | std::views::transform([this](const auto& gene_set) {
+            return calculate_enrichment_score(gene_set, *gene_rank_);
+        })
+        | std::ranges::to<std::vector>();
 
-    std::cout << "  Generating null distribution with " << sample_size 
-              << " permutations...\n";
+    std::cout << std::format("  Generating null distribution with {} permutations...\n", sample_size);
 
     // Compute null distribution
     auto null_distribution = compute_null_distribution(
@@ -136,13 +131,11 @@ std::vector<std::string> GSEAAnalyzer::get_significant_sets(double p_value,
         gene_sets_.size()
     );
 
-    std::vector<std::string> significant_names;
-    significant_names.reserve(significant_indices.size());
-    for (size_t idx : significant_indices) {
-        significant_names.push_back(gene_sets_[idx].get_name());
-    }
-
-    return significant_names;
+    return significant_indices
+        | std::views::transform([this](size_t idx) {
+            return std::string(gene_sets_[idx].get_name());
+        })
+        | std::ranges::to<std::vector>();
 }
 
 bool GSEAAnalyzer::is_loaded() const {

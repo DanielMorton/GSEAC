@@ -3,28 +3,30 @@
 #include <algorithm>
 #include <ranges>
 
+using namespace std;
+
 namespace gsea {
 
-SampleData::SampleData(std::vector<std::string> sample_names,
-                       std::vector<uint8_t> disease_status)
+SampleData::SampleData(vector<string> sample_names,
+                       vector<uint8_t> disease_status)
     : sample_names_(std::move(sample_names))
     , disease_status_(std::move(disease_status)) {
     if (sample_names_.size() != disease_status_.size()) {
-        throw std::invalid_argument(
+        throw invalid_argument(
             "Sample names and disease status must have the same length");
     }
 }
 
 size_t SampleData::num_diseased() const noexcept {
-    return std::ranges::count(disease_status_, 1);
+    return ranges::count(disease_status_, 1);
 }
 
 size_t SampleData::num_healthy() const noexcept {
-    return std::ranges::count(disease_status_, 0);
+    return ranges::count(disease_status_, 0);
 }
 
-std::vector<size_t> SampleData::get_disease_indices() const {
-    std::vector<size_t> indices;
+vector<size_t> SampleData::get_disease_indices() const {
+    vector<size_t> indices;
     for (size_t i = 0; i < disease_status_.size(); ++i) {
         if (disease_status_[i] == 1) {
             indices.push_back(i);
@@ -33,8 +35,8 @@ std::vector<size_t> SampleData::get_disease_indices() const {
     return indices;
 }
 
-std::vector<size_t> SampleData::get_healthy_indices() const {
-    std::vector<size_t> indices;
+vector<size_t> SampleData::get_healthy_indices() const {
+    vector<size_t> indices;
     for (size_t i = 0; i < disease_status_.size(); ++i) {
         if (disease_status_[i] == 0) {
             indices.push_back(i);
@@ -43,18 +45,18 @@ std::vector<size_t> SampleData::get_healthy_indices() const {
     return indices;
 }
 
-std::optional<bool> SampleData::is_diseased(size_t index) const noexcept {
+optional<bool> SampleData::is_diseased(size_t index) const noexcept {
     if (index < disease_status_.size()) {
         return disease_status_[index] == 1;
     }
-    return std::nullopt;
+    return nullopt;
 }
 
-std::optional<std::string_view> SampleData::get_sample_name(size_t index) const noexcept {
+optional<string_view> SampleData::get_sample_name(size_t index) const noexcept {
     if (index < sample_names_.size()) {
         return sample_names_[index];
     }
-    return std::nullopt;
+    return nullopt;
 }
 
 } // namespace gsea

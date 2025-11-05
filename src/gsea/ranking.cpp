@@ -3,29 +3,31 @@
 #include <stdexcept>
 #include <numeric>
 
+using namespace std;
+
 namespace gsea {
 
 static double calculate_mean(const ExpressionData& expression,
                              size_t gene_idx,
-                             std::span<const size_t> sample_indices) {
-    double sum = std::accumulate(sample_indices.begin(), sample_indices.end(), 0.0,
+                             span<const size_t> sample_indices) {
+    double sum = accumulate(sample_indices.begin(), sample_indices.end(), 0.0,
         [&](double acc, size_t col) {
             return acc + expression.values()(gene_idx, col);
         });
     return sum / sample_indices.size();
 }
 
-std::vector<size_t> compute_gene_rank(const ExpressionData& expression,
-                                       std::span<const size_t> disease_indices,
-                                       std::span<const size_t> healthy_indices) {
+vector<size_t> compute_gene_rank(const ExpressionData& expression,
+                                       span<const size_t> disease_indices,
+                                       span<const size_t> healthy_indices) {
     if (disease_indices.empty() || healthy_indices.empty()) {
-        throw std::invalid_argument("Cannot compute gene rank with empty sample groups");
+        throw invalid_argument("Cannot compute gene rank with empty sample groups");
     }
 
     size_t num_genes = expression.num_genes();
 
     // Calculate differential expression for each gene
-    std::vector<std::pair<size_t, double>> gene_diffs;
+    vector<pair<size_t, double>> gene_diffs;
     gene_diffs.reserve(num_genes);
 
     for (size_t gene_idx = 0; gene_idx < num_genes; ++gene_idx) {
@@ -35,10 +37,10 @@ std::vector<size_t> compute_gene_rank(const ExpressionData& expression,
     }
 
     // Sort by difference in descending order
-    std::ranges::sort(gene_diffs, std::ranges::greater{}, &std::pair<size_t, double>::second);
+    ranges::sort(gene_diffs, ranges::greater{}, &pair<size_t, double>::second);
 
     // Extract indices
-    std::vector<size_t> ranked_indices;
+    vector<size_t> ranked_indices;
     ranked_indices.reserve(num_genes);
     for (const auto& [idx, _] : gene_diffs) {
         ranked_indices.push_back(idx);

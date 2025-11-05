@@ -3,10 +3,12 @@
 #include <ranges>
 #include <algorithm>
 
+using namespace std;
+
 namespace gsea {
 
 Eigen::VectorXd compute_brownian_bridge(const GeneSet& gene_set,
-                                         std::span<const size_t> gene_rank) {
+                                         span<const size_t> gene_rank) {
     size_t num_genes = gene_rank.size();
     Eigen::VectorXd bridge(num_genes);
 
@@ -20,10 +22,10 @@ Eigen::VectorXd compute_brownian_bridge(const GeneSet& gene_set,
 }
 
 double calculate_enrichment_score(const GeneSet& gene_set,
-                                   std::span<const size_t> gene_rank) {
+                                   span<const size_t> gene_rank) {
     auto bridge = compute_brownian_bridge(gene_set, gene_rank);
 
-    return std::ranges::max(bridge);
+    return ranges::max(bridge);
 }
 
 } // namespace gsea

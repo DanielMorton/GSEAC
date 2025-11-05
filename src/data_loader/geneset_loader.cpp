@@ -4,19 +4,24 @@
 #include <unordered_set>
 #include <iostream>
 #include <cmath>
-#include <ranges>
 #include <string_view>
 #include <format>
 
 namespace gsea {
 
-static auto split(std::string_view str, char delimiter) {
-    return str
-        | std::views::split(delimiter)
-        | std::views::transform([](auto&& rng) {
-            return std::string(rng.begin(), rng.end());
-        })
-        | std::ranges::to<std::vector>();
+static std::vector<std::string> split(std::string_view str, char delimiter) {
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    size_t end = str.find(delimiter);
+
+    while (end != std::string_view::npos) {
+        tokens.emplace_back(str.substr(start, end - start));
+        start = end + 1;
+        end = str.find(delimiter, start);
+    }
+    tokens.emplace_back(str.substr(start));
+
+    return tokens;
 }
 
 static std::string trim(std::string_view str) {
@@ -54,25 +59,29 @@ std::vector<GeneSet> load_gene_sets(const std::string& filepath,
         std::string set_name = trim(tokens[0]);
 
         // Build set of genes (skip name and description columns)
-        auto genes_in_set = tokens
-            | std::views::drop(2)
-            | std::views::transform([](const auto& s) { return trim(s); })
-            | std::views::filter([](const auto& s) { return !s.empty(); })
-            | std::ranges::to<std::unordered_set<std::string>>();
+        std::unordered_set<std::string> genes_in_set;
+        for (size_t i = 2; i < tokens.size(); ++i) {
+            auto gene = trim(tokens[i]);
+            if (!gene.empty()) {
+                genes_in_set.insert(std::move(gene));
+            }
+        }
 
         if (genes_in_set.empty()) {
             std::cerr << std::format("Warning: Skipping gene set '{}': contains no genes\n", set_name);
             continue;
         }
 
-        // Create boolean mask
-        auto gene_mask = gene_names
-            | std::views::transform([&](const auto& gene) {
-                return genes_in_set.contains(gene);
-            })
-            | std::ranges::to<std::vector>();
+        // Create boolean mask and count genes
+        std::vector<bool> gene_mask;
+        gene_mask.reserve(num_genes);
+        size_t gene_count = 0;
 
-        size_t gene_count = std::ranges::count(gene_mask, true);
+        for (const auto& gene : gene_names) {
+            bool in_set = genes_in_set.contains(gene);
+            gene_mask.push_back(in_set);
+            if (in_set) ++gene_count;
+        }
 
         if (gene_count == 0) {
             std::cerr << std::format("Warning: Skipping gene set '{}': no genes match expression data\n",
@@ -84,15 +93,12 @@ std::vector<GeneSet> load_gene_sets(const std::string& filepath,
         double up_score = std::sqrt(static_cast<double>(num_genes - gene_count) / gene_count);
         double down_score = -1.0 / up_score;
 
-        auto scores = gene_mask
-            | std::views::transform([&](bool in_set) {
-                return in_set ? up_score : down_score;
-            })
-            | std::ranges::to<std::vector>();
+        Eigen::VectorXd scores(num_genes);
+        for (size_t i = 0; i < num_genes; ++i) {
+            scores(i) = gene_mask[i] ? up_score : down_score;
+        }
 
-        Eigen::VectorXd scores_vec = Eigen::Map<Eigen::VectorXd>(scores.data(), scores.size());
-
-        gene_sets.emplace_back(std::move(set_name), gene_count, std::move(scores_vec));
+        gene_sets.emplace_back(std::move(set_name), gene_count, std::move(scores));
     }
 
     if (gene_sets.empty()) {

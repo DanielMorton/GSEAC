@@ -1,19 +1,24 @@
 #include "data_loader/sample_loader.h"
 #include <fstream>
 #include <stdexcept>
-#include <ranges>
 #include <string_view>
 #include <format>
 
 namespace gsea {
 
-static auto split(std::string_view str, char delimiter) {
-    return str
-        | std::views::split(delimiter)
-        | std::views::transform([](auto&& rng) {
-            return std::string(rng.begin(), rng.end());
-        })
-        | std::ranges::to<std::vector>();
+static std::vector<std::string> split(std::string_view str, char delimiter) {
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    size_t end = str.find(delimiter);
+
+    while (end != std::string_view::npos) {
+        tokens.emplace_back(str.substr(start, end - start));
+        start = end + 1;
+        end = str.find(delimiter, start);
+    }
+    tokens.emplace_back(str.substr(start));
+
+    return tokens;
 }
 
 static std::string trim(std::string_view str) {

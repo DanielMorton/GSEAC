@@ -1,7 +1,6 @@
 #include "gsea/ranking.h"
 #include <algorithm>
 #include <stdexcept>
-#include <ranges>
 #include <numeric>
 
 namespace gsea {
@@ -26,21 +25,26 @@ std::vector<size_t> compute_gene_rank(const ExpressionData& expression,
     size_t num_genes = expression.num_genes();
 
     // Calculate differential expression for each gene
-    auto gene_diffs = std::views::iota(size_t{0}, num_genes)
-        | std::views::transform([&](size_t gene_idx) {
-            double disease_mean = calculate_mean(expression, gene_idx, disease_indices);
-            double healthy_mean = calculate_mean(expression, gene_idx, healthy_indices);
-            return std::pair{gene_idx, disease_mean - healthy_mean};
-        })
-        | std::ranges::to<std::vector>();
+    std::vector<std::pair<size_t, double>> gene_diffs;
+    gene_diffs.reserve(num_genes);
+
+    for (size_t gene_idx = 0; gene_idx < num_genes; ++gene_idx) {
+        double disease_mean = calculate_mean(expression, gene_idx, disease_indices);
+        double healthy_mean = calculate_mean(expression, gene_idx, healthy_indices);
+        gene_diffs.emplace_back(gene_idx, disease_mean - healthy_mean);
+    }
 
     // Sort by difference in descending order
     std::ranges::sort(gene_diffs, std::ranges::greater{}, &std::pair<size_t, double>::second);
 
     // Extract indices
-    return gene_diffs
-        | std::views::elements<0>
-        | std::ranges::to<std::vector>();
+    std::vector<size_t> ranked_indices;
+    ranked_indices.reserve(num_genes);
+    for (const auto& [idx, _] : gene_diffs) {
+        ranked_indices.push_back(idx);
+    }
+
+    return ranked_indices;
 }
 
 } // namespace gsea

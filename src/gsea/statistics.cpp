@@ -4,7 +4,6 @@
 #include <random>
 #include <algorithm>
 #include <stdexcept>
-#include <ranges>
 
 #ifdef USE_PARALLEL_STL
 #include <execution>
@@ -21,7 +20,8 @@ std::vector<size_t> generate_random_gene_rank(const ExpressionData& expression,
     }
 
     // Create and shuffle indices
-    auto all_indices = std::views::iota(size_t{0}, num_cols) | std::ranges::to<std::vector>();
+    std::vector<size_t> all_indices(num_cols);
+    std::iota(all_indices.begin(), all_indices.end(), size_t{0});
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -40,7 +40,8 @@ std::vector<std::vector<double>> compute_null_distribution(
     size_t disease_size,
     size_t sample_size) {
 
-    auto indices = std::views::iota(size_t{0}, sample_size) | std::ranges::to<std::vector>();
+    std::vector<size_t> indices(sample_size);
+    std::iota(indices.begin(), indices.end(), size_t{0});
 
     std::vector<std::vector<double>> distribution(sample_size);
 
@@ -50,15 +51,16 @@ std::vector<std::vector<double>> compute_null_distribution(
                    distribution.begin(),
                    [&](size_t) {
 #else
-    std::ranges::transform(indices, distribution.begin(), [&](size_t) {
+    std::transform(indices.begin(), indices.end(), distribution.begin(), [&](size_t) {
 #endif
         auto random_rank = generate_random_gene_rank(expression, disease_size);
 
-        return gene_sets
-            | std::views::transform([&](const auto& gene_set) {
-                return calculate_enrichment_score(gene_set, random_rank);
-            })
-            | std::ranges::to<std::vector>();
+        std::vector<double> scores;
+        scores.reserve(gene_sets.size());
+        for (const auto& gene_set : gene_sets) {
+            scores.push_back(calculate_enrichment_score(gene_set, random_rank));
+        }
+        return scores;
     });
 
     return distribution;
@@ -73,17 +75,21 @@ std::vector<size_t> find_significant_sets(
     size_t sample_size = null_distribution.size();
     double corrected_p = p_value / num_sets;
 
-    return std::views::iota(size_t{0}, num_sets)
-        | std::views::filter([&](size_t i) {
-            double actual_score = actual_scores[i];
+    std::vector<size_t> significant;
 
-            size_t count_greater = std::ranges::count_if(null_distribution,
-                [&](const auto& sample) { return sample[i] >= actual_score; });
+    for (size_t i = 0; i < num_sets; ++i) {
+        double actual_score = actual_scores[i];
 
-            double empirical_p = static_cast<double>(count_greater) / sample_size;
-            return empirical_p < corrected_p;
-        })
-        | std::ranges::to<std::vector>();
+        size_t count_greater = std::ranges::count_if(null_distribution,
+            [&](const auto& sample) { return sample[i] >= actual_score; });
+
+        double empirical_p = static_cast<double>(count_greater) / sample_size;
+        if (empirical_p < corrected_p) {
+            significant.push_back(i);
+        }
+    }
+
+    return significant;
 }
 
 } // namespace gsea

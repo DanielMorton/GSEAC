@@ -24,9 +24,9 @@ int main(int argc, char* argv[]) {
         auto es_scores = analyzer.compute_all_enrichment_scores();
 
         // Sort by enrichment score (descending) using ranges
-        auto sorted_scores = es_scores
-            | std::views::transform([](const auto& p) { return std::pair{p.first, p.second}; })
-            | std::ranges::to<std::vector>();
+        std::vector<std::pair<std::string, double>> sorted_scores;
+        sorted_scores.reserve(es_scores.size());
+        std::ranges::copy(es_scores, std::back_inserter(sorted_scores));
 
         std::ranges::sort(sorted_scores, std::ranges::greater{}, &std::pair<std::string, double>::second);
 

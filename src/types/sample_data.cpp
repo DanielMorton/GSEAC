@@ -24,16 +24,22 @@ size_t SampleData::num_healthy() const noexcept {
 }
 
 std::vector<size_t> SampleData::get_disease_indices() const {
-    auto indices = std::views::iota(size_t{0}, disease_status_.size())
-                 | std::views::filter([this](size_t i) { return disease_status_[i] == 1; })
-                 | std::ranges::to<std::vector>();
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < disease_status_.size(); ++i) {
+        if (disease_status_[i] == 1) {
+            indices.push_back(i);
+        }
+    }
     return indices;
 }
 
 std::vector<size_t> SampleData::get_healthy_indices() const {
-    auto indices = std::views::iota(size_t{0}, disease_status_.size())
-                 | std::views::filter([this](size_t i) { return disease_status_[i] == 0; })
-                 | std::ranges::to<std::vector>();
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < disease_status_.size(); ++i) {
+        if (disease_status_[i] == 0) {
+            indices.push_back(i);
+        }
+    }
     return indices;
 }
 

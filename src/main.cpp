@@ -20,8 +20,7 @@ int main(int argc, char* argv[]) {
 
     try {
         cout << "Loading data...\n";
-        GSEAAnalyzer analyzer;
-        analyzer.load_data(exp_file, samp_file, kegg_file);
+        GSEAAnalyzer analyzer(exp_file, samp_file, kegg_file);
 
         cout << "Computing enrichment scores...\n";
         auto es_scores = analyzer.compute_all_enrichment_scores();

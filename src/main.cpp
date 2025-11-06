@@ -7,6 +7,7 @@
 #include <ranges>
 
 using namespace std;
+using namespace gsea;
 
 int main(int argc, char* argv[]) {
     if (argc != 4) {
@@ -19,7 +20,7 @@ int main(int argc, char* argv[]) {
 
     try {
         cout << "Loading data...\n";
-        gsea::GSEAAnalyzer analyzer;
+        GSEAAnalyzer analyzer;
         analyzer.load_data(exp_file, samp_file, kegg_file);
 
         cout << "Computing enrichment scores...\n";

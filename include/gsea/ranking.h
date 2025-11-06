@@ -4,11 +4,13 @@
 #include <vector>
 #include <span>
 
+using namespace std;
+
 namespace gsea {
 
-[[nodiscard]] std::vector<size_t> compute_gene_rank(
+[[nodiscard]] vector<size_t> compute_gene_rank(
     const ExpressionData& expression,
-    std::span<const size_t> disease_indices,
-    std::span<const size_t> healthy_indices);
+    span<const size_t> disease_indices,
+    span<const size_t> healthy_indices);
 
 } // namespace gsea

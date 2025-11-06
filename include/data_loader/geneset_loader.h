@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 namespace gsea {
 
-std::vector<GeneSet> load_gene_sets(const std::string& filepath,
-                                     const std::vector<std::string>& gene_names);
+vector<GeneSet> load_gene_sets(const string& filepath,
+                                     const vector<string>& gene_names);
 
 } // namespace gsea

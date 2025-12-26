@@ -64,7 +64,7 @@ vector<string> GSEAAnalyzer::get_gene_rank_order() {
     vector<string> gene_names;
     gene_names.reserve(gene_rank_.size());
     for (size_t idx : gene_rank_) {
-        gene_names.push_back(string(expression_.gene_names()[idx]));
+        gene_names.emplace_back(expression_.gene_names()[idx]);
     }
 
     return gene_names;
@@ -129,7 +129,7 @@ vector<string> GSEAAnalyzer::get_significant_sets(double p_value,
     vector<string> significant_names;
     significant_names.reserve(significant_indices.size());
     for (size_t idx : significant_indices) {
-        significant_names.push_back(string(gene_sets_[idx].get_name()));
+        significant_names.emplace_back(gene_sets_[idx].get_name());
     }
 
     return significant_names;

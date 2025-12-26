@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.15)
-project(gsea CXX)
+project(gsea)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find Eigen
-find_package(Eigen3 5.0.0 REQUIRED NO_MODULE)
+find_package(Eigen3 5.0.1 REQUIRED NO_MODULE)
+
+include_directories(include)
 
 # Source files
 set(SOURCES
@@ -21,6 +23,8 @@ set(SOURCES
         src/gsea/enrichment.cpp
         src/gsea/statistics.cpp
         src/gsea/analyzer.cpp
+        src/main.cpp
+        src/main.cpp
 )
 
 # Executable

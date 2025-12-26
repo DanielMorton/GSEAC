@@ -75,7 +75,8 @@ vector<size_t> find_significant_sets(
     size_t num_sets) {
 
     size_t sample_size = null_distribution.size();
-    double corrected_p = p_value / num_sets;
+    double corrected_p;
+    corrected_p = p_value / num_sets;
 
     vector<size_t> significant;
 
@@ -85,7 +86,8 @@ vector<size_t> find_significant_sets(
         size_t count_greater = ranges::count_if(null_distribution,
             [&](const auto& sample) { return sample[i] >= actual_score; });
 
-        double empirical_p = static_cast<double>(count_greater) / sample_size;
+        double empirical_p;
+        empirical_p = static_cast<double>(count_greater) / sample_size;
         if (empirical_p < corrected_p) {
             significant.push_back(i);
         }

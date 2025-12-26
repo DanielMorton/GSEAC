@@ -6,7 +6,6 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <memory>
 
 using namespace std;
 
@@ -27,7 +26,7 @@ public:
 
     vector<string> get_significant_sets(double p_value, size_t sample_size);
 
-    size_t num_gene_sets() const { return gene_sets_.size(); }
+    [[nodiscard]] size_t num_gene_sets() const { return gene_sets_.size(); }
 
 private:
     ExpressionData expression_;

@@ -8,7 +8,7 @@ using namespace std;
 
 namespace gsea {
 
-static vector<string> split(const string& str, char delimiter) {
+static vector<string> split(const string& str, const char delimiter) {
     vector<string> tokens;
     stringstream ss(str);
     string token;
@@ -68,7 +68,7 @@ ExpressionData load_expression_data(const string& filepath) {
         for (size_t i = 1; i < tokens.size(); ++i) {
             try {
                 values.push_back(stod(tokens[i]));
-            } catch (const exception& e) {
+            } catch ([[maybe_unused]] const exception& e) {
                 throw runtime_error(
                     "Failed to parse expression value: " + tokens[i]);
             }
@@ -88,7 +88,7 @@ ExpressionData load_expression_data(const string& filepath) {
         }
     }
 
-    return ExpressionData(std::move(matrix), std::move(gene_names), std::move(sample_names));
+    return {std::move(matrix), std::move(gene_names), std::move(sample_names)};
 }
 
 } // namespace gsea

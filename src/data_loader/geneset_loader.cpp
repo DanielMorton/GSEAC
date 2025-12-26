@@ -11,7 +11,7 @@ using namespace std;
 
 namespace gsea {
 
-static vector<string> split(string_view str, char delimiter) {
+static vector<string> split(string_view str, const char delimiter) {
     vector<string> tokens;
     size_t start = 0;
     size_t end = str.find(delimiter);
@@ -92,7 +92,8 @@ vector<GeneSet> load_gene_sets(const string& filepath,
         }
 
         // Precompute scores
-        double up_score = sqrt(static_cast<double>(num_genes - gene_count) / gene_count);
+        double up_score;
+        up_score = sqrt(static_cast<double>(num_genes - gene_count) / gene_count);
         double down_score = -1.0 / up_score;
 
         Eigen::VectorXd scores(num_genes);

@@ -2,7 +2,6 @@
 
 #include "types/gene_set.h"
 #include <Eigen/Dense>
-#include <vector>
 #include <span>
 
 using namespace std;
